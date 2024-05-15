@@ -10,6 +10,7 @@ hostapd.data.pending_config = {};
 hostapd.data.file_fields = {
 	vlan_file: true,
 	wpa_psk_file: true,
+	rxkh_file: true,
 	accept_mac_file: true,
 	deny_mac_file: true,
 	eap_user_file: true,
@@ -291,6 +292,21 @@ function bss_reload_psk(bss, config, old_config)
 	ret ??= "failed";
 
 	hostapd.printf(`Reload WPA PSK file for bss ${config.ifname}: ${ret}`);
+}
+
+function bss_reload_rxkhs(bss, config, old_config)
+{
+	if (is_equal(old_config.hash.rxkh_file, config.hash.rxkh_file))
+		return;
+
+	old_config.hash.rxkh_file = config.hash.rxkh_file;
+	if (!is_equal(old_config, config))
+		return;
+
+	let ret = bss.ctrl("RELOAD_RXKHS");
+	ret ??= "failed";
+
+	hostapd.printf(`Reload RXKH file for bss ${config.ifname}: ${ret}`);
 }
 
 function remove_file_fields(config)
@@ -582,6 +598,10 @@ function iface_reload_config(phydev, config, old_config)
 		}
 
 		bss_reload_psk(bss, config.bss[i], bss_list_cfg[i]);
+		if (is_equal(config.bss[i], bss_list_cfg[i]))
+			continue;
+
+		bss_reload_rxkhs(bss, config.bss[i], bss_list_cfg[i]);
 		if (is_equal(config.bss[i], bss_list_cfg[i]))
 			continue;
 
